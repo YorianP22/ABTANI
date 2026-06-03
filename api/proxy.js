@@ -1,43 +1,25 @@
-// api/proxy.js
 export default async function handler(req, res) {
-  // Set CORS headers agar frontend dapat mengakses response
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Tangani preflight OPTIONS
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Hanya terima POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // Ambil action dari query parameter
-  const { action } = req.query;
-  if (!action) {
-    return res.status(400).json({ error: 'Missing action parameter' });
-  }
-
-  // URL Google Apps Script (ganti jika perlu)
+  // GANTI DENGAN URL WEB APP APPS SCRIPT ANDA
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxlI-Mq4g8QV_603mEd0fBsAnEnhmC8jL8YC-NhlmFm_hxRGeQrZkyTX0ykC5KjqHNHmg/exec';
 
   try {
-    // Kirim request ke GAS
-    const gasResponse = await fetch(`${GAS_URL}?action=${action}`, {
+    const gasResponse = await fetch(GAS_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain', // GAS menerima text/plain untuk menghindari preflight
-      },
-      body: JSON.stringify(req.body), // Teruskan body dari frontend
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body) // { action, data }
     });
-
     const data = await gasResponse.json();
     res.status(200).json(data);
-  } catch (error) {
-    console.error('Proxy error:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Proxy error', details: err.message });
   }
 }
